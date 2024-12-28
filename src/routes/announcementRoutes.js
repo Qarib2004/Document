@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../data/db');
+const fs = require('fs');
+const db = JSON.parse(fs.readFileSync(__dirname + '/../data/db.json'))
+
 
 // Get all announcements
 router.get('/', (req, res) => {
@@ -21,7 +23,7 @@ router.post('/', (req, res) => {
     ...req.body,
     date: new Date().toISOString()
   };
-  
+
   db.announcements.push(newAnnouncement);
   res.status(201).json(newAnnouncement);
 });

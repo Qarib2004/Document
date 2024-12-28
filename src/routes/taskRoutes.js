@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../data/db');
+const fs = require('fs');
+
+const db = JSON.parse(fs.readFileSync(__dirname + '/../data/db.json'))
 
 // Get all tasks
 router.get('/', (req, res) => {

@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { hashPassword, comparePassword } = require('../utils/auth');
-const db = require('../data/db');
+const fs = require('fs');
+const path = require('path');
+
+// Read the database file
+const db = JSON.parse(fs.readFileSync(path.join(__dirname, '/../data/db.json')));
 
 // Get all users
 router.get('/', (req, res) => {
@@ -9,7 +13,7 @@ router.get('/', (req, res) => {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   });
-  res.json(usersWithoutPasswords);
+  res.json(db.users);
 });
 
 // Get user by ID
@@ -55,9 +59,28 @@ router.post('/', async (req, res) => {
   // Push new user to the database
   db.users.push(newUser);
 
-  // Remove password from the response before sending
-  const { password: _, ...userWithoutPassword } = newUser;
-  res.status(201).json(userWithoutPassword);
+  // Write the updated data back to the file
+  fs.writeFile(
+    path.join(__dirname, '/../data/db.json'),
+    JSON.stringify(db, null, 2),  // Pretty-print the JSON with 2 spaces for readability
+    (err) => {
+      if (err) {
+        return res.status(500).json({
+          status: 'fail',
+          message: 'Could not save data to file',
+        });
+      }
+
+      // Remove password from the response before sending
+      const { password: _, ...userWithoutPassword } = newUser;
+      res.status(201).json({
+        status: 'success',
+        data: {
+          user: userWithoutPassword
+        }
+      });
+    }
+  );
 });
 
 // Update user
@@ -73,8 +96,22 @@ router.patch('/:id', async (req, res) => {
 
   db.users[userIndex] = updatedUser;
 
-  const { password, ...userWithoutPassword } = updatedUser;
-  res.json(userWithoutPassword);
+  // Write the updated data back to the file
+  fs.writeFile(
+    path.join(__dirname, '/../data/db.json'),
+    JSON.stringify(db, null, 2),
+    (err) => {
+      if (err) {
+        return res.status(500).json({
+          status: 'fail',
+          message: 'Could not save data to file',
+        });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    }
+  );
 });
 
 // Delete user
@@ -83,7 +120,22 @@ router.delete('/:id', (req, res) => {
   if (userIndex === -1) return res.status(404).json({ message: 'User not found' });
 
   db.users.splice(userIndex, 1);
-  res.status(204).send();
+
+  // Write the updated data back to the file
+  fs.writeFile(
+    path.join(__dirname, '/../data/db.json'),
+    JSON.stringify(db, null, 2),
+    (err) => {
+      if (err) {
+        return res.status(500).json({
+          status: 'fail',
+          message: 'Could not save data to file',
+        });
+      }
+
+      res.status(204).send();
+    }
+  );
 });
 
 module.exports = router;
