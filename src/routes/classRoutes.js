@@ -26,6 +26,18 @@ router.post('/', (req, res) => {
   
   db.classes.push(newClass);
   res.status(201).json(newClass);
+  
+  fs.writeFile(
+    path.join(__dirname, '/../data/db.json'),
+    JSON.stringify(db, null, 2),  // Pretty-print the JSON with 2 spaces for readability
+    (err) => {
+      if (err) {
+        return res.status(500).json({
+          status: 'fail',
+          message: 'Could not save data to file',
+        });
+      }
+  
 });
 
 // Update class
