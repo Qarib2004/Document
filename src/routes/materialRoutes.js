@@ -1,53 +1,64 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const db = JSON.parse(fs.readFileSync(__dirname + '/../data/db.json'))
+const path = require('path');
+const dbPath = path.join(__dirname, '/../data/db.json');
 
+// Veritabanını okuma
+let db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
 
-// Get all materials
+// JSON dosyasına yazma işlemi
+const saveDb = () => {
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
+};
+
+// Tüm materyalleri getir
 router.get('/', (req, res) => {
   res.json(db.materials);
 });
 
-// Get material by ID
+// ID'ye göre materyal getir
 router.get('/:id', (req, res) => {
   const material = db.materials.find(m => m.id === req.params.id);
   if (!material) return res.status(404).json({ message: 'Material not found' });
   res.json(material);
 });
 
-// Create material
+// Yeni materyal oluştur
 router.post('/', (req, res) => {
   const newMaterial = {
     id: `m${db.materials.length + 1}`,
     ...req.body,
     likes: [],
-    comments: []
+    comments: [],
   };
-  
+
   db.materials.push(newMaterial);
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.status(201).json(newMaterial);
 });
 
-// Update material
+// Materyali güncelle
 router.patch('/:id', (req, res) => {
   const index = db.materials.findIndex(m => m.id === req.params.id);
   if (index === -1) return res.status(404).json({ message: 'Material not found' });
 
   db.materials[index] = { ...db.materials[index], ...req.body };
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.json(db.materials[index]);
 });
 
-// Delete material
+// Materyali sil
 router.delete('/:id', (req, res) => {
   const index = db.materials.findIndex(m => m.id === req.params.id);
   if (index === -1) return res.status(404).json({ message: 'Material not found' });
 
   db.materials.splice(index, 1);
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.status(204).send();
 });
 
-// Like material
+// Materyali beğen
 router.post('/:id/like', (req, res) => {
   const { userId } = req.body;
   const material = db.materials.find(m => m.id === req.params.id);
@@ -55,11 +66,12 @@ router.post('/:id/like', (req, res) => {
 
   if (!material.likes.includes(userId)) {
     material.likes.push(userId);
+    saveDb(); // Değişiklikleri JSON dosyasına kaydet
   }
   res.json(material);
 });
 
-// Add comment
+// Yorum ekle
 router.post('/:id/comments', (req, res) => {
   const material = db.materials.find(m => m.id === req.params.id);
   if (!material) return res.status(404).json({ message: 'Material not found' });
@@ -68,8 +80,9 @@ router.post('/:id/comments', (req, res) => {
     id: `c${material.comments.length + 1}`,
     ...req.body,
   };
-  
+
   material.comments.push(newComment);
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.status(201).json(newComment);
 });
 
