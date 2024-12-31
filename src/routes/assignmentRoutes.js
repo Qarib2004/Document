@@ -1,49 +1,60 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const db = JSON.parse(fs.readFileSync(__dirname + '/../data/db.json'))
+const path = require('path');
+const dbPath = path.join(__dirname, '/../data/db.json');
 
+// Veritabanını okuma
+let db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
 
-// Get all assignments
+// JSON dosyasına yazma işlemi
+const saveDb = () => {
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
+};
+
+// Tüm görevleri getir
 router.get('/', (req, res) => {
   res.json(db.assignments);
 });
 
-// Get assignment by ID
+// ID'ye göre görev getir
 router.get('/:id', (req, res) => {
   const assignment = db.assignments.find(a => a.id === req.params.id);
   if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
   res.json(assignment);
 });
 
-// Create assignment
+// Yeni görev oluştur
 router.post('/', (req, res) => {
   const newAssignment = {
     id: `a${db.assignments.length + 1}`,
     ...req.body,
     assignDate: new Date().toISOString(),
-    status: 'pending'
+    status: 'pending',
   };
-  
+
   db.assignments.push(newAssignment);
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.status(201).json(newAssignment);
 });
 
-// Update assignment
+// Görevi güncelle
 router.patch('/:id', (req, res) => {
   const index = db.assignments.findIndex(a => a.id === req.params.id);
   if (index === -1) return res.status(404).json({ message: 'Assignment not found' });
 
   db.assignments[index] = { ...db.assignments[index], ...req.body };
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.json(db.assignments[index]);
 });
 
-// Delete assignment
+// Görevi sil
 router.delete('/:id', (req, res) => {
   const index = db.assignments.findIndex(a => a.id === req.params.id);
   if (index === -1) return res.status(404).json({ message: 'Assignment not found' });
 
   db.assignments.splice(index, 1);
+  saveDb(); // Değişiklikleri JSON dosyasına kaydet
   res.status(204).send();
 });
 
