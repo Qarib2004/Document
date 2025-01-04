@@ -30,7 +30,7 @@ router.post('/', (req, res) => {
     id: `a${db.assignments.length + 1}`,
     ...req.body,
     assignDate: new Date().toISOString(),
-    status: 'pending',
+    status: 'submitted',
   };
 
   db.assignments.push(newAssignment);
