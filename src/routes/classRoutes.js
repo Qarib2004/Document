@@ -1,60 +1,67 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '/../data/db.json');
+const  Class  = require('../models/Class');
 
-// Veritabanını okuma
-let db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-
-// JSON dosyasına yazma işlemi
-const saveDb = () => {
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
-};
-
-// Tüm sınıfları getir
-router.get('/', (req, res) => {
-  res.json(db.classes);
+// Get all classes
+router.get('/', async (req, res) => {
+  try {
+    const classes = await Class.find()
+      .populate('teacherId', '-password')
+      .populate('studentIds', '-password');
+    res.json(classes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// ID'ye göre sınıf getir
-router.get('/:id', (req, res) => {
-  const classItem = db.classes.find(c => c.id === req.params.id);
-  if (!classItem) return res.status(404).json({ message: 'Class not found' });
-  res.json(classItem);
+// Get class by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const classItem = await Class.findById(req.params.id)
+      .populate('teacherId', '-password')
+      .populate('studentIds', '-password');
+    if (!classItem) return res.status(404).json({ message: 'Class not found' });
+    res.json(classItem);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// Yeni sınıf oluştur
-router.post('/', (req, res) => {
-  const newClass = {
-    id: `c${db.classes.length + 1}`,
-    ...req.body,
-    createdAt: new Date().toISOString(),
-  };
-
-  db.classes.push(newClass);
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.status(201).json(newClass);
+// Create new class
+router.post('/', async (req, res) => {
+  try {
+    const newClass = new Class(req.body);
+    const savedClass = await newClass.save();
+    res.status(201).json(savedClass);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
-// Sınıfı güncelle
-router.patch('/:id', (req, res) => {
-  const classIndex = db.classes.findIndex(c => c.id === req.params.id);
-  if (classIndex === -1) return res.status(404).json({ message: 'Class not found' });
-
-  db.classes[classIndex] = { ...db.classes[classIndex], ...req.body };
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.json(db.classes[classIndex]);
+// Update class
+router.patch('/:id', async (req, res) => {
+  try {
+    const updatedClass = await Class.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!updatedClass) return res.status(404).json({ message: 'Class not found' });
+    res.json(updatedClass);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
-// Sınıfı sil
-router.delete('/:id', (req, res) => {
-  const classIndex = db.classes.findIndex(c => c.id === req.params.id);
-  if (classIndex === -1) return res.status(404).json({ message: 'Class not found' });
-
-  db.classes.splice(classIndex, 1);
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.status(204).send();
+// Delete class
+router.delete('/:id', async (req, res) => {
+  try {
+    const classItem = await Class.findByIdAndDelete(req.params.id);
+    if (!classItem) return res.status(404).json({ message: 'Class not found' });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 module.exports = router;

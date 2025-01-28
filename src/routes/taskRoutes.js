@@ -1,62 +1,69 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '/../data/db.json');
+const  Task  = require('../models/Task');
 
-// Veritabanını okuma
-let db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-
-// JSON dosyasına yazma işlemi
-const saveDb = () => {
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
-};
-
-// Tüm görevleri getir
-router.get('/', (req, res) => {
-  res.json(db.tasks);
+// Get all tasks
+router.get('/', async (req, res) => {
+  try {
+    const tasks = await Task.find()
+      .populate('classId')
+      .populate('teacherId', '-password')
+      .populate('assignments');
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// ID'ye göre görev getir
-router.get('/:id', (req, res) => {
-  const task = db.tasks.find(t => t.id === req.params.id);
-  if (!task) return res.status(404).json({ message: 'Task not found' });
-  res.json(task);
+// Get task by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id)
+      .populate('classId')
+      .populate('teacherId', '-password')
+      .populate('assignments');
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    res.json(task);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// Yeni görev oluştur
-router.post('/', (req, res) => {
-  const newTask = {
-    id: `t${db.tasks.length + 1}`,
-    ...req.body,
-    createdAt: new Date().toISOString(),
-    assignments: [],
-    completionRate: 0,
-  };
-
-  db.tasks.push(newTask);
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.status(201).json(newTask);
+// Create new task
+router.post('/', async (req, res) => {
+  try {
+    const task = new Task(req.body);
+    const savedTask = await task.save();
+    res.status(201).json(savedTask);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
-// Görevi güncelle
-router.patch('/:id', (req, res) => {
-  const taskIndex = db.tasks.findIndex(t => t.id === req.params.id);
-  if (taskIndex === -1) return res.status(404).json({ message: 'Task not found' });
-
-  db.tasks[taskIndex] = { ...db.tasks[taskIndex], ...req.body };
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.json(db.tasks[taskIndex]);
+// Update task
+router.patch('/:id', async (req, res) => {
+  try {
+    const task = await Task.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    res.json(task);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
-// Görevi sil
-router.delete('/:id', (req, res) => {
-  const taskIndex = db.tasks.findIndex(t => t.id === req.params.id);
-  if (taskIndex === -1) return res.status(404).json({ message: 'Task not found' });
-
-  db.tasks.splice(taskIndex, 1);
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.status(204).send();
+// Delete task
+router.delete('/:id', async (req, res) => {
+  try {
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 module.exports = router;

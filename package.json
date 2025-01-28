@@ -3,18 +3,34 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node src/server.js",
+    "start": "nodemon src/server.js",
     "dev": "nodemon src/server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "joi": "^17.11.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.12.0",
+    "mongoose": "^8.9.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
-  }
+    "nodemon": "^3.1.9"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Qarib2004/Document.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Qarib2004/Document/issues"
+  },
+  "homepage": "https://github.com/Qarib2004/Document#readme",
+  "description": ""
 }

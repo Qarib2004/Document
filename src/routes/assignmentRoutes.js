@@ -1,61 +1,67 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '/../data/db.json');
+const  Assignment  = require('../models/Assignment');
 
-// Veritabanını okuma
-let db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-
-// JSON dosyasına yazma işlemi
-const saveDb = () => {
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
-};
-
-// Tüm görevleri getir
-router.get('/', (req, res) => {
-  res.json(db.assignments);
+// Get all assignments
+router.get('/', async (req, res) => {
+  try {
+    const assignments = await Assignment.find()
+      .populate('taskId')
+      .populate('studentId', '-password');
+    res.json(assignments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// ID'ye göre görev getir
-router.get('/:id', (req, res) => {
-  const assignment = db.assignments.find(a => a.id === req.params.id);
-  if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
-  res.json(assignment);
+// Get assignment by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id)
+      .populate('taskId')
+      .populate('studentId', '-password');
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    res.json(assignment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// Yeni görev oluştur
-router.post('/', (req, res) => {
-  const newAssignment = {
-    id: `a${db.assignments.length + 1}`,
-    ...req.body,
-    assignDate: new Date().toISOString(),
-    status: 'submitted',
-  };
-
-  db.assignments.push(newAssignment);
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.status(201).json(newAssignment);
+// Create new assignment
+router.post('/', async (req, res) => {
+  try {
+    const assignment = new Assignment(req.body);
+    const savedAssignment = await assignment.save();
+    res.status(201).json(savedAssignment);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
-// Görevi güncelle
-router.patch('/:id', (req, res) => {
-  const index = db.assignments.findIndex(a => a.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Assignment not found' });
-
-  db.assignments[index] = { ...db.assignments[index], ...req.body };
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.json(db.assignments[index]);
+// Update assignment
+router.patch('/:id', async (req, res) => {
+  try {
+    const assignment = await Assignment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    res.json(assignment);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
-// Görevi sil
-router.delete('/:id', (req, res) => {
-  const index = db.assignments.findIndex(a => a.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Assignment not found' });
-
-  db.assignments.splice(index, 1);
-  saveDb(); // Değişiklikleri JSON dosyasına kaydet
-  res.status(204).send();
+// Delete assignment
+router.delete('/:id', async (req, res) => {
+  try {
+    const assignment = await Assignment.findByIdAndDelete(req.params.id);
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 module.exports = router;
